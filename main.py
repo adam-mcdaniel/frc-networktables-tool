@@ -10,11 +10,15 @@ import dill as pickle
 import tkinter
 from tkinter import ttk, Scale, Frame, Grid, N, S, E, W
 
+from networktables import NetworkTables
+NetworkTables.initialize(server='10.65.18.2')
+sd = NetworkTables.getTable("SmartDashboard")
+
 
 class NetworkSlider(Scale):
     def __init__(self, frame, entry="", slider=0, x=0, y=1, *args, **kwargs):
         super().__init__(frame, from_=0, to=1, digits=4, resolution = 0.001, orient=tkinter.HORIZONTAL, *args, **kwargs)
-        self.grid(column=x+1, row=y, sticky=E+W, columnspan=2)
+        self.grid(column=x+1, row=y, sticky=E+W, columnspan=3)
 
         self.entry = ttk.Entry(frame, justify=tkinter.LEFT)
         self.entry.insert(0, "")
@@ -24,19 +28,21 @@ class NetworkSlider(Scale):
 
     def destroy(self): super().destroy(); self.entry.destroy()
 
-    def update(self): pass # print(f"{self.get_name()}: {self.get_value()}")
+    # def update(self): pass # print(f"{self.get_name()}: {self.get_value()}")
+    def update(self): sd.putNumber(self.get_name(), self.get_value())
     def get_name(self): return self.entry.get()
     def get_value(self): return self.get()
     def get_data(self): return self.get_name(), self.get_value()
 
 
 class App(tkinter.Tk):
-    def __init__(self, data=[], title="NetworkTables Tuning Tool", w=200, h=400):
+    def __init__(self, data=[], auto_push=False, title="NetworkTables Tuning Tool", w=200, h=400):
         self.height = 1
+        self.auto_push = auto_push
         super().__init__()
         Grid.columnconfigure(self, 0, weight=1)
         Grid.columnconfigure(self, 1, weight=1)
-        self.after(100, self.update)
+        self.after(50, self.update)
         self.title(title)
 
         self.frame = ttk.Frame(self, padding=40)
@@ -50,8 +56,13 @@ class App(tkinter.Tk):
         self.remove_slider_button.grid(column=1, row=0, sticky=N+S+E+W)
         self.remove_slider_button['command'] = lambda: self.remove_slider()
 
+        if not self.auto_push:
+            self.push_button = ttk.Button(self, text="Push")
+            self.push_button.grid(column=2, row=0, sticky=N+S+E+W)
+            self.push_button['command'] = lambda: self.push()
+
         self.save_button = ttk.Button(self, text="Save")
-        self.save_button.grid(column=2, row=0, sticky=N+S+E+W)
+        self.save_button.grid(column=3, row=0, sticky=N+S+E+W)
         self.save_button['command'] = lambda: self.save()
 
         self.sliders = []
@@ -61,7 +72,6 @@ class App(tkinter.Tk):
             self.add_slider(*saved)
 
 
-    # def load(path): return []
     def load(path):
         data = []
         with open(path, "rb") as f:
@@ -76,10 +86,14 @@ class App(tkinter.Tk):
             pickle.dump(self.data, f)
             f.close()
 
+    def push(self): self.update_sliders()
+
     def update(self):
-        self.update_sliders()
+        if self.auto_push:
+            self.push()
+
         for y in range(self.height+1): Grid.rowconfigure(self, y, weight=1)
-        self.after(100, self.update)
+        self.after(50, self.update)
 
     def add_slider(self, entry=0, slider=0):
         if entry or slider:
@@ -103,9 +117,7 @@ class App(tkinter.Tk):
 
 
 def main():
-    root = App(data=(App.load(sys.argv[1]) if len(sys.argv) > 1 else []))
-    # root = App()
-
+    root = App(auto_push=False, data=(App.load(sys.argv[1]) if len(sys.argv) > 1 else []))
     root.mainloop()
 
 
