@@ -1,9 +1,3 @@
-"""
-This project lets you try out Tkinter/Ttk and practice it!
-
-Authors: David Fisher and PUT_YOUR_NAME_HERE.
-"""  # TODO: 1. PUT YOUR NAME IN THE ABOVE LINE.
-
 import os
 import sys
 import dill as pickle
@@ -117,7 +111,7 @@ class App(tkinter.Tk):
 
 
 def main():
-    root = App(auto_push=False, data=(App.load(sys.argv[1]) if len(sys.argv) > 1 else []))
+    root = App(auto_push=True, data=(App.load(sys.argv[1]) if len(sys.argv) > 1 else []))
     root.mainloop()
 
 
